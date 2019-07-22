@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS quotes;
+
+CREATE TABLE quotes(
+id SERIAL PRIMARY KEY,
+movie_name VARCHAR(255),
+quote TEXT
+);

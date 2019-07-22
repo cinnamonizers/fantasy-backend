@@ -10,11 +10,11 @@ const pg = require('pg');
 
 //Global vars
 const PORT = process.env.PORT || 3001;
-// const client = new pg.Client(process.env.DATABASE_URL);
-// client.connect();
-// client.on('error', error => {
-//   console.error(error);
-// })
+const client = new pg.Client(process.env.DATABASE_URL);
+client.connect();
+client.on('error', error => {
+  console.error(error);
+})
 
 //Apps
 const app = express();
@@ -51,7 +51,7 @@ function getMovies(request, response) {
       result.body.docs.forEach(item => {
         arrayOfMovies.push(new Movie(item));
       })
-      console.log(arrayOfMovies);
+      //console.log(arrayOfMovies);
 
     });
   response.send('Done');
@@ -64,41 +64,68 @@ function searchQuotes(request, response) {
   console.log('here at search quotes');
   let movieName = request.query.data || 'The Return of the King';
   let movieID = request.query.data || '5cd95395de30eff6ebccde5d';
-  let arrayOfQuotes = [];
 
+
+  let tableName = 'quotes';
   const url = `https://the-one-api.herokuapp.com/v1/movie/${movieID}/quote`;
-  superagent.get(url)
-    .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
-    .then(result => {
-      arrayOfQuotes = result.body.docs.map(item => {
 
-        return new Quotes(item.dialog, movieName);
-      })
-
-      console.log(arrayOfQuotes);
-      response.send(arrayOfQuotes);
-
-    }).catch(e => {
-      console.log(e);
+  checkDB('movie_name', movieName, url, tableName)
+    .then(data => {
+      response.send(data);
     });
+}
+
+//SQL INSERTS
+const SQL_INSERTS = {
+  quotes: `INSERT INTO quotes(
+    movie_name,
+    quote
+    
+  ) VALUES($1, $2)
+                RETURNING *`
+}
+
+//Check DB
+
+function checkDB(search_query, search_value, url, tableName) {
+  return client.query(`SELECT * FROM ${tableName} WHERE ${search_query}=$1`, [search_value])
+    .then(sqlResult => {
+      if (sqlResult.rowCount === 0) {
+        return makeApiCall(tableName, search_value, url);
+      } else {
+        return sendFromDB(sqlResult);
+      }
+    })
 
 }
 
-
-
-
-
-
-
-
-
-//Start process
-//SQL INSERTS
-//Check DB
 //make API Call
 
+function makeApiCall(tableName, search_value, url) {
 
+  console.log('Making an API call');
+  let arrayOfQuotes = [];
+  return superagent.get(url)
+    .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
+    .then(result => {
+      arrayOfQuotes = result.body.docs.map(item => {
+        const newQuote = new Quotes(item.dialog, search_value);
+        client.query(
+          SQL_INSERTS[tableName], [newQuote.movieName, newQuote.quote]
+        )
+        return newQuote;
 
+      })
+      return arrayOfQuotes;
+    })
+}
+
+//Send from DB
+
+function sendFromDB(sqlResult) {
+  console.log('returning from DB');
+  return sqlResult.rows;
+}
 
 //Starting Server
 app.listen(PORT, () => {
