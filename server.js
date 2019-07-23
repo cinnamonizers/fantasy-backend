@@ -23,6 +23,7 @@ app.use(cors());
 
 //Routes
 app.get('/quotes', searchQuotes);
+// app.get('/words', searchWords);
 
 //Any other routes
 app.use('*', (req, res) => {
@@ -59,6 +60,11 @@ function getMovies(request, response) {
 
 }
 
+function searchWords(request, response) {
+  console.log('here at search words');
+  let wordToSearch = request.query.data || 'King';
+  
+}
 
 function searchQuotes(request, response) {
   console.log('here at search quotes');
@@ -71,7 +77,9 @@ function searchQuotes(request, response) {
 
   checkDB('movie_name', movieName, url, tableName)
     .then(data => {
-      response.send(data);
+      response.send(data.slice(0,50)); 
+    }).catch(e => {
+      console.log(e);
     });
 }
 
