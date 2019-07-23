@@ -214,7 +214,6 @@ function makeApiCall(tableName, search_value, url) {
                 result.body.synonyms.forEach(item => {
                   syn.push(item);
                 })
-                console.log('Syns: ', syn);
                 words.push(ex);
                 words.push(def);
                 words.push(syn);
@@ -240,26 +239,33 @@ function sendFromDB(sqlResult) {
   return sqlResult.rows;
 }
 
+
+function startServer() {
+  let arrayOfMovies = [];
+  return client.query(`SELECT * FROM movies`).then(result => {
+    if(result.rowCount === 0) {
+      const url = `https://the-one-api.herokuapp.com/v1/movie`;
+      let tableName = 'movies';
+      return superagent.get(url)
+        .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
+        .then(result => {
+          result.body.docs.forEach(item => {    
+            arrayOfMovies.push(new Movie(item._id, item.name));    
+            return client.query(
+              SQL_INSERTS[tableName], [item._id, item.name]
+            )    
+          }) //for each ends
+        }).catch(e => {
+          console.log(e);
+        });
+    }
+
+  });
+}
+
 //Starting Server
 app.listen(PORT, () => {
   console.log('listing on port', PORT);
-  let arrayOfMovies = [];
-  const url = `https://the-one-api.herokuapp.com/v1/movie`;
-  let tableName = 'movies';
-  superagent.get(url)
-    .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
-    .then(result => {
-      result.body.docs.forEach(item => {
-
-        arrayOfMovies.push(new Movie(item._id, item.name));
-
-        client.query(
-          SQL_INSERTS[tableName], [item._id, item.name]
-        )
-
-      }) //for each ends
-
-
-    });
+  startServer();
 
 })
