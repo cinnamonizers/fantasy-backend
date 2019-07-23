@@ -21,7 +21,6 @@ client.on('error', error => {
 const app = express();
 app.use(cors());
 
-
 //Routes
 
 app.get('/movies', getMovies);
@@ -32,6 +31,7 @@ app.get('/words', searchWords);
 app.use('*', (req, res) => {
   res.send('You got in the wrong place')
 })
+
 //Constructors
 function Movie(id, name) {
   this.movieID = id;
@@ -44,18 +44,32 @@ function Quotes(quote, movieName, movieID) {
   this.movieID = movieID;
 }
 
+function Words(data) {
+  this.word = data.word;
+}
+
+function Definitions(data) {
+  this.definition = data.definition;
+}
+
+function Synonyms(data) {
+  this.synonym = data.synonym;
+}
+
+function Examples(data) {
+  this.example = data.example;
+}
 
 function getMovies(request, response) {
   let finalMovies = [];
   (client.query(`SELECT * FROM movies`).then(result => {
     result.rows.forEach(item => {
-      if(item.id === 6 || item.id === 7 || item.id ===8) {
+      if (item.id === 6 || item.id === 7 || item.id === 8) {
         finalMovies.push(item);
       }
     })
     response.send(finalMovies);
   }));
-
 }
 
 
@@ -73,18 +87,33 @@ function getMovieID(movieName) {
     .catch(console.error);
 }
 
-
-
-
 function searchWords(request, response) {
   console.log('here at search words');
   let wordToSearch = request.query.data || 'kind';
   const url = `https://wordsapiv1.p.rapidapi.com/words/${wordToSearch}`;
 
-
-  makeApiCall('wordsVariations', wordToSearch, url).then(data => {
+  getWordID(wordToSearch, url).then(data => {
+    console.log('DATA___', data);
     response.send(data);
-  })
+  });
+
+
+}
+
+function getWordID(wordToSearch, url) {
+
+  const SQL = `SELECT id FROM words WHERE word=$1;`;
+  const values = [wordToSearch];
+
+  return client.query(SQL, values)
+    .then(result => {
+      if (result.rowCount === 0) {
+        console.log('RESULTS FROM WORD API____', result);
+        return makeApiCall('wordsVariations', wordToSearch, url);
+      } else {
+        return 'No data found';
+      }
+    }).catch(console.error);
 }
 
 function searchQuotes(request, response) {
@@ -99,12 +128,11 @@ function searchQuotes(request, response) {
 
     checkDB('movie_name', movieName, url, tableName)
       .then(data => {
-        response.send(data.slice(0, 50));
+        response.send(data);
       }).catch(e => {
         console.log(e);
       });
   });
-
 
 }
 
@@ -137,19 +165,23 @@ const SQL_INSERTS = {
   ) VALUES($1, $2)
                 RETURNING *`,
   synonyms: `INSERT INTO synonyms(
-    def,
+    syn,
     word_id
     
   ) VALUES($1, $2)
-                RETURNING *`
+                RETURNING *`,
+  words: `INSERT INTO words(
+                  word
+                  ) VALUES($1)
+                  RETURNING *`
+
 
 }
-
 
 //Check DB
 
 function checkDB(search_query, search_value, url, tableName) {
-  return client.query(`SELECT * FROM ${tableName} WHERE ${search_query}=$1`, [search_value])
+  return client.query(`SELECT * FROM ${tableName} WHERE ${search_query} = $1`, [search_value])
     .then(sqlResult => {
       if (sqlResult.rowCount === 0) {
         return makeApiCall(tableName, search_value, url);
@@ -192,6 +224,7 @@ function makeApiCall(tableName, search_value, url) {
       })
 
   case 'wordsVariations':
+
     return unirest.get(url + '/examples')
       .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
       .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
@@ -239,21 +272,20 @@ function sendFromDB(sqlResult) {
   return sqlResult.rows;
 }
 
-
 function startServer() {
   let arrayOfMovies = [];
   return client.query(`SELECT * FROM movies`).then(result => {
-    if(result.rowCount === 0) {
+    if (result.rowCount === 0) {
       const url = `https://the-one-api.herokuapp.com/v1/movie`;
       let tableName = 'movies';
       return superagent.get(url)
         .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
         .then(result => {
-          result.body.docs.forEach(item => {    
-            arrayOfMovies.push(new Movie(item._id, item.name));    
+          result.body.docs.forEach(item => {
+            arrayOfMovies.push(new Movie(item._id, item.name));
             return client.query(
               SQL_INSERTS[tableName], [item._id, item.name]
-            )    
+            )
           }) //for each ends
         }).catch(e => {
           console.log(e);
