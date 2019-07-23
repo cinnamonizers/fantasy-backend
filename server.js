@@ -6,6 +6,7 @@ const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
 const pg = require('pg');
+const unirest = require('unirest');
 
 
 //Global vars
@@ -25,7 +26,7 @@ app.use(cors());
 
 app.get('/movies', getMovies);
 app.get('/quotes', searchQuotes);
-// app.get('/words', searchWords);
+app.get('/words', searchWords);
 
 //Any other routes
 app.use('*', (req, res) => {
@@ -64,11 +65,6 @@ function getMovies(request, response) {
 
 }
 
-// function searchWords(request, response) {
-//   console.log('here at search words');
-//   let wordToSearch = request.query.data || 'King';
-
-// }
 
 function getMovieID(movieName) {
 
@@ -83,6 +79,20 @@ function getMovieID(movieName) {
       return movieID;
     })
     .catch(console.error);
+  
+function searchWords(request, response) {
+  console.log('here at search words');
+  let wordToSearch = request.query.data || 'King';
+  const url = `https://wordsapiv1.p.rapidapi.com/words/${wordToSearch}/examples`;
+
+  unirest.get(url)
+    .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+    .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+    .then(result => {
+      console.log(result.body);
+      response.send(result.body);
+    })
+
 }
 
 function searchQuotes(request, response) {
@@ -103,6 +113,13 @@ function searchQuotes(request, response) {
       });
   });
 
+
+  checkDB('movie_name', movieName, url, tableName)
+    .then(data => {
+      response.send(data.slice(0, 50));
+    }).catch(e => {
+      console.log(e);
+    });
 }
 
 //SQL INSERTS
