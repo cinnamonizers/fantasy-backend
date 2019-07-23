@@ -79,20 +79,18 @@ function getMovieID(movieName) {
       return movieID;
     })
     .catch(console.error);
-  
+}
+
+
+
+
 function searchWords(request, response) {
   console.log('here at search words');
-  let wordToSearch = request.query.data || 'King';
-  const url = `https://wordsapiv1.p.rapidapi.com/words/${wordToSearch}/examples`;
-
-  unirest.get(url)
-    .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-    .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-    .then(result => {
-      console.log(result.body);
-      response.send(result.body);
-    })
-
+  let wordToSearch = request.query.data || 'kind';
+  const url = `https://wordsapiv1.p.rapidapi.com/words/${wordToSearch}`;
+  makeApiCall('wordsVariations', wordToSearch, url).then(data => {
+    response.send(data);
+  })
 }
 
 function searchQuotes(request, response) {
@@ -114,12 +112,6 @@ function searchQuotes(request, response) {
   });
 
 
-  checkDB('movie_name', movieName, url, tableName)
-    .then(data => {
-      response.send(data.slice(0, 50));
-    }).catch(e => {
-      console.log(e);
-    });
 }
 
 //SQL INSERTS
@@ -137,7 +129,14 @@ const SQL_INSERTS = {
     movie_id
     
   ) VALUES($1, $2, $3)
-                RETURNING *`
+                RETURNING *`,
+  wordsVariations: `INSERT INTO wordsVariations(
+                  def,
+                  syn,
+                  example,
+                  word_id                  
+                ) VALUES($1, $2, $3, $4)
+                              RETURNING *`
 }
 
 //Check DB
@@ -159,10 +158,19 @@ function checkDB(search_query, search_value, url, tableName) {
 function makeApiCall(tableName, search_value, url) {
 
   console.log('Making an API call');
+  let arrayOfMovies = [];
+  let movieID = '';
+  let arrayOfQuotes = [];
+  let words = [];
+  let syn = [];
+  let ex = [];
+  let def = [];
 
-  if (tableName === 'quotes') {
-    let movieID = url.split('/')[5];
-    let arrayOfQuotes = [];
+
+  switch(tableName) {
+  case 'quotes':
+    movieID = url.split('/')[5];
+    arrayOfQuotes = [];
     return superagent.get(url)
       .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
       .then(result => {
@@ -176,9 +184,8 @@ function makeApiCall(tableName, search_value, url) {
         })
         return arrayOfQuotes;
       })
-  } else {
 
-    let arrayOfMovies = [];
+  case 'movies':
     return superagent.get(url)
       .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
       .then(result => {
@@ -196,8 +203,55 @@ function makeApiCall(tableName, search_value, url) {
         return arrayOfMovies;
       });
 
+  case 'wordsVariations':
+    return unirest.get(url + '/examples')
+      .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+      .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+      .then(result => {
+        // console.log(result.body);
+        result.body.examples.map(item => {
+          ex.push(item);
+        })
+        return unirest.get(url + '/definitions')
+          .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+          .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+          .then(result => {
+            result.body.definitions.forEach(item => {
+              def.push(item.definition);
+            })
+            return unirest.get(url + '/synonyms')
+              .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+              .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+              .then(result => {
+                result.body.synonyms.forEach(item => {
+                  syn.push(item);
+                })
+                console.log('Syns: ', syn);
+                words.push(ex);
+                words.push(def);
+                words.push(syn);
+                return words;
 
-  }
+              })//third unirest
+
+
+          }) //second unirest
+
+
+      }) //first unirest
+
+
+
+
+
+
+
+
+
+
+
+
+  } //switch ends
 
 }
 
