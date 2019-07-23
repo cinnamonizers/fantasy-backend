@@ -46,22 +46,15 @@ function Quotes(quote, movieName, movieID) {
 
 
 function getMovies(request, response) {
-  console.log('here at get movies');
-
-  const url = `https://the-one-api.herokuapp.com/v1/movie`;
-
-  let tableName = 'movies';
-  let movieID = request.query.data || '5cd95395de30eff6ebccde5d';
-
-  checkDB('movie_id', movieID, url, tableName)
-    .then(data => {
-      console.log('data', data);
-      response.send(data);
-    }).catch(e => {
-      console.log(e);
-    });
-
-
+  let finalMovies = [];
+  (client.query(`SELECT * FROM movies`).then(result => {
+    result.rows.forEach(item => {
+      if(item.id === 6 || item.id === 7 || item.id ===8) {
+        finalMovies.push(item);
+      }
+    })
+    response.send(finalMovies);
+  }));
 
 }
 
@@ -71,7 +64,6 @@ function getMovieID(movieName) {
   const SQL = `SELECT movie_id FROM movies WHERE movie_name=$1;`;
   const values = [movieName];
   let movieID = '';
-  console.log(movieName, SQL, values);
 
   return client.query(SQL, values)
     .then(result => {
@@ -88,6 +80,8 @@ function searchWords(request, response) {
   console.log('here at search words');
   let wordToSearch = request.query.data || 'kind';
   const url = `https://wordsapiv1.p.rapidapi.com/words/${wordToSearch}`;
+
+
   makeApiCall('wordsVariations', wordToSearch, url).then(data => {
     response.send(data);
   })
@@ -130,14 +124,27 @@ const SQL_INSERTS = {
     
   ) VALUES($1, $2, $3)
                 RETURNING *`,
-  wordsVariations: `INSERT INTO wordsVariations(
-                  def,
-                  syn,
-                  example,
-                  word_id                  
-                ) VALUES($1, $2, $3, $4)
-                              RETURNING *`
+  definitions: `INSERT INTO definitions(
+    def,
+    word_id
+    
+  ) VALUES($1, $2)
+                RETURNING *`,
+  examples: `INSERT INTO examples(
+    example,
+    word_id
+    
+  ) VALUES($1, $2)
+                RETURNING *`,
+  synonyms: `INSERT INTO synonyms(
+    def,
+    word_id
+    
+  ) VALUES($1, $2)
+                RETURNING *`
+
 }
+
 
 //Check DB
 
@@ -158,7 +165,6 @@ function checkDB(search_query, search_value, url, tableName) {
 function makeApiCall(tableName, search_value, url) {
 
   console.log('Making an API call');
-  let arrayOfMovies = [];
   let movieID = '';
   let arrayOfQuotes = [];
   let words = [];
@@ -167,7 +173,7 @@ function makeApiCall(tableName, search_value, url) {
   let def = [];
 
 
-  switch(tableName) {
+  switch (tableName) {
   case 'quotes':
     movieID = url.split('/')[5];
     arrayOfQuotes = [];
@@ -184,24 +190,6 @@ function makeApiCall(tableName, search_value, url) {
         })
         return arrayOfQuotes;
       })
-
-  case 'movies':
-    return superagent.get(url)
-      .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
-      .then(result => {
-        result.body.docs.forEach(item => {
-          arrayOfMovies.push(new Movie(item._id, item.name));
-
-          client.query(
-            SQL_INSERTS[tableName], [item._id, item.name]
-          )
-
-        }) //for each ends
-
-        console.log('after api call');
-
-        return arrayOfMovies;
-      });
 
   case 'wordsVariations':
     return unirest.get(url + '/examples')
@@ -241,16 +229,6 @@ function makeApiCall(tableName, search_value, url) {
       }) //first unirest
 
 
-
-
-
-
-
-
-
-
-
-
   } //switch ends
 
 }
@@ -265,4 +243,23 @@ function sendFromDB(sqlResult) {
 //Starting Server
 app.listen(PORT, () => {
   console.log('listing on port', PORT);
+  let arrayOfMovies = [];
+  const url = `https://the-one-api.herokuapp.com/v1/movie`;
+  let tableName = 'movies';
+  superagent.get(url)
+    .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
+    .then(result => {
+      result.body.docs.forEach(item => {
+
+        arrayOfMovies.push(new Movie(item._id, item.name));
+
+        client.query(
+          SQL_INSERTS[tableName], [item._id, item.name]
+        )
+
+      }) //for each ends
+
+
+    });
+
 })
