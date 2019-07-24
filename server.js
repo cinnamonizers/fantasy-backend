@@ -23,6 +23,46 @@ client.on('error', error => {
   console.error(error);
 })
 
+const SQL_INSERTS = {
+
+  movies: `INSERT INTO movies(
+    movie_id,
+    movie_name
+    
+  ) VALUES($1, $2)
+                RETURNING *`,
+  quotes: `INSERT INTO quotes(
+    movie_name,
+    quote,
+    movie_id
+    
+  ) VALUES($1, $2, $3)
+                RETURNING *`,
+  definitions: `INSERT INTO definitions(
+    def,
+    word_id
+    
+  ) VALUES($1, $2)
+                RETURNING *`,
+  examples: `INSERT INTO examples(
+    example,
+    word_id
+    
+  ) VALUES($1, $2)
+                RETURNING *`,
+  synonyms: `INSERT INTO synonyms(
+    syn,
+    word_id
+    
+  ) VALUES($1, $2)
+                RETURNING *`,
+  words: `INSERT INTO words(
+                  word
+                  ) VALUES($1)
+                  RETURNING *`
+
+}
+
 //Apps
 const app = express();
 app.use(cors());
@@ -245,49 +285,6 @@ function getMovieID(movieName) {
 }
 
 /**
- * Helper function to make necessary INSERTS to the DB
- */
-const SQL_INSERTS = {
-
-  movies: `INSERT INTO movies(
-    movie_id,
-    movie_name
-    
-  ) VALUES($1, $2)
-                RETURNING *`,
-  quotes: `INSERT INTO quotes(
-    movie_name,
-    quote,
-    movie_id
-    
-  ) VALUES($1, $2, $3)
-                RETURNING *`,
-  definitions: `INSERT INTO definitions(
-    def,
-    word_id
-    
-  ) VALUES($1, $2)
-                RETURNING *`,
-  examples: `INSERT INTO examples(
-    example,
-    word_id
-    
-  ) VALUES($1, $2)
-                RETURNING *`,
-  synonyms: `INSERT INTO synonyms(
-    syn,
-    word_id
-    
-  ) VALUES($1, $2)
-                RETURNING *`,
-  words: `INSERT INTO words(
-                  word
-                  ) VALUES($1)
-                  RETURNING *`
-
-}
-
-/**
  * Helper function to check database and make api call if data does not exist.
  * Otherwise, it retrieves from database
  * @param {*} search_query : column name for the database
@@ -325,67 +322,67 @@ function makeApiCall(tableName, search_value, url) {
 
 
   switch (tableName) {
-  case 'quotes':
-    movieID = url.split('/')[5];
-    arrayOfQuotes = [];
-    return superagent.get(url)
-      .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
-      .then(result => {
-        arrayOfQuotes = result.body.docs.map(item => {
-          const newQuote = new Quotes(item.dialog, search_value, movieID);
-          client.query(
-            SQL_INSERTS[tableName], [newQuote.movieName, newQuote.quote, newQuote.movieID]
-          )
-          return newQuote;
-        })
-        return arrayOfQuotes;
-      })
-
-  case 'wordsVariations':
-    return client.query(
-      `SELECT id FROM words WHERE word=$1`, [search_value]
-    ).then(sqlResult => {
-      return unirest.get(url + '/examples')
-        .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-        .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+    case 'quotes':
+      movieID = url.split('/')[5];
+      arrayOfQuotes = [];
+      return superagent.get(url)
+        .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
         .then(result => {
-          result.body.examples.map(item => {
+          arrayOfQuotes = result.body.docs.map(item => {
+            const newQuote = new Quotes(item.dialog, search_value, movieID);
             client.query(
-              SQL_INSERTS['examples'], [item, sqlResult.rows[0].id] //Insert into DB
+              SQL_INSERTS[tableName], [newQuote.movieName, newQuote.quote, newQuote.movieID]
             )
-            ex.push(item);
+            return newQuote;
           })
-          return unirest.get(url + '/definitions')
-            .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-            .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-            .then(result => {
-              result.body.definitions.forEach(item => {
-                client.query(
-                  SQL_INSERTS['definitions'], [item.definition, sqlResult.rows[0].id] //Insert into DB
-                )
-                def.push(item.definition);
-              })
-              return unirest.get(url + '/synonyms')
-                .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-                .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-                .then(result => {
-                  result.body.synonyms.forEach(item => {
-                    client.query(
-                      SQL_INSERTS['synonyms'], [item, sqlResult.rows[0].id] //Insert into DB
-                    )
-                    syn.push(item);
-                  })
-                  words.push(ex);
-                  words.push(def);
-                  words.push(syn);
-                  return words;
+          return arrayOfQuotes;
+        })
 
-                })//third unirest
+    case 'wordsVariations':
+      return client.query(
+        `SELECT id FROM words WHERE word=$1`, [search_value]
+      ).then(sqlResult => {
+        return unirest.get(url + '/examples')
+          .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+          .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+          .then(result => {
+            result.body.examples.map(item => {
+              client.query(
+                SQL_INSERTS['examples'], [item, sqlResult.rows[0].id] //Insert into DB
+              )
+              ex.push(item);
+            })
+            return unirest.get(url + '/definitions')
+              .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+              .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+              .then(result => {
+                result.body.definitions.forEach(item => {
+                  client.query(
+                    SQL_INSERTS['definitions'], [item.definition, sqlResult.rows[0].id] //Insert into DB
+                  )
+                  def.push(item.definition);
+                })
+                return unirest.get(url + '/synonyms')
+                  .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+                  .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+                  .then(result => {
+                    result.body.synonyms.forEach(item => {
+                      client.query(
+                        SQL_INSERTS['synonyms'], [item, sqlResult.rows[0].id] //Insert into DB
+                      )
+                      syn.push(item);
+                    })
+                    words.push(ex);
+                    words.push(def);
+                    words.push(syn);
+                    return words;
 
-            }) //second unirest
+                  })//third unirest
 
-        }) //first unirest
-    }).catch(e => console.log(e)) //client query ends
+              }) //second unirest
+
+          }) //first unirest
+      }).catch(e => console.log(e)) //client query ends
 
   } //switch ends
 
@@ -395,7 +392,6 @@ function makeApiCall(tableName, search_value, url) {
  * Helper function to access sql results and send it back to the first caller in the stack
  * @param {*} sqlResult : the result from the DB
  */
-
 function sendFromDB(sqlResult) {
   console.log('returning from DB');
   return sqlResult.rows;
