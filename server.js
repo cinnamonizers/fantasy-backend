@@ -109,11 +109,72 @@ function getWordID(wordToSearch, url) {
     .then(result => {
       if (result.rowCount === 0) {
         console.log('RESULTS FROM WORD API____', result);
-        return makeApiCall('wordsVariations', wordToSearch, url);
+        return client.query(
+          SQL_INSERTS['words'], [wordToSearch]
+        ).then(() => {
+          return makeApiCall('wordsVariations', wordToSearch, url);
+        })
+
       } else {
-        return 'No data found';
+        console.log('RETURNING FROM DB');
+        let wordID = result.rows[0].id;
+        return cacheHit(wordID);
       }
     }).catch(console.error);
+}
+
+function cacheHit(wordID) {
+
+  let wordResult = [];
+  let examples = getExamples(wordID);
+  let definitions = getDefinitions(wordID);
+  let synonyms = getSynonyms(wordID);
+
+  wordResult.push(examples);
+  wordResult.push(definitions);
+  wordResult.push(synonyms);
+
+  return wordResult;
+
+}
+
+function getExamples(wordID) {
+  const SQL = `SELECT * FROM examples WHERE word_id=$1;`;
+  const values = [wordID];
+
+  return client.query(SQL, values)
+    .then(result => {
+      if (result.rowCount > 0) {
+        return result.rows;
+      }
+    })
+    .catch(console.error);
+}
+
+function getDefinitions(wordID) {
+  const SQL = `SELECT * FROM definitions WHERE word_id=$1;`;
+  const values = [wordID];
+
+  return client.query(SQL, values)
+    .then(result => {
+      if (result.rowCount > 0) {
+        return result.rows;
+      }
+    })
+    .catch(console.error);
+}
+
+function getSynonyms(wordID) {
+  const SQL = `SELECT * FROM synonyms WHERE word_id=$1;`;
+  const values = [wordID];
+
+  return client.query(SQL, values)
+    .then(result => {
+      if (result.rowCount > 0) {
+        return result.rows;
+      }
+    })
+    .catch(console.error);
 }
 
 function searchQuotes(request, response) {
@@ -206,59 +267,75 @@ function makeApiCall(tableName, search_value, url) {
 
 
   switch (tableName) {
-  case 'quotes':
-    movieID = url.split('/')[5];
-    arrayOfQuotes = [];
-    return superagent.get(url)
-      .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
-      .then(result => {
-        arrayOfQuotes = result.body.docs.map(item => {
-          const newQuote = new Quotes(item.dialog, search_value, movieID);
-          client.query(
-            SQL_INSERTS[tableName], [newQuote.movieName, newQuote.quote, newQuote.movieID]
-          )
-          return newQuote;
+    case 'quotes':
+      movieID = url.split('/')[5];
+      arrayOfQuotes = [];
+      return superagent.get(url)
+        .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
+        .then(result => {
+          arrayOfQuotes = result.body.docs.map(item => {
+            const newQuote = new Quotes(item.dialog, search_value, movieID);
+            client.query(
+              SQL_INSERTS[tableName], [newQuote.movieName, newQuote.quote, newQuote.movieID]
+            )
+            return newQuote;
 
+          })
+          return arrayOfQuotes;
         })
-        return arrayOfQuotes;
-      })
 
-  case 'wordsVariations':
+    case 'wordsVariations':
+      return client.query(
+        `SELECT id FROM words WHERE word=$1`, [search_value]
+      ).then(sqlResult => {
+        //id is the primary key
 
-    return unirest.get(url + '/examples')
-      .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-      .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-      .then(result => {
-        // console.log(result.body);
-        result.body.examples.map(item => {
-          ex.push(item);
-        })
-        return unirest.get(url + '/definitions')
+        return unirest.get(url + '/examples')
           .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
           .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
           .then(result => {
-            result.body.definitions.forEach(item => {
-              def.push(item.definition);
+            // console.log(result.body);
+            result.body.examples.map(item => {
+              client.query(
+                SQL_INSERTS['examples'], [item, sqlResult.rows[0].id]  //Insert into DB
+              )
+              ex.push(item);
             })
-            return unirest.get(url + '/synonyms')
+            return unirest.get(url + '/definitions')
               .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
               .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
               .then(result => {
-                result.body.synonyms.forEach(item => {
-                  syn.push(item);
+                result.body.definitions.forEach(item => {
+                  client.query(
+                    SQL_INSERTS['definitions'], [item.definition, sqlResult.rows[0].id]  //Insert into DB
+                  )
+
+                  def.push(item.definition);
                 })
-                words.push(ex);
-                words.push(def);
-                words.push(syn);
-                return words;
+                return unirest.get(url + '/synonyms')
+                  .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+                  .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+                  .then(result => {
+                    result.body.synonyms.forEach(item => {
+                      client.query(
+                        SQL_INSERTS['synonyms'], [item, sqlResult.rows[0].id]  //Insert into DB
+                      )
 
-              })//third unirest
+                      syn.push(item);
+                    })
+                    words.push(ex);
+                    words.push(def);
+                    words.push(syn);
+                    return words;
+
+                  })//third unirest
 
 
-          }) //second unirest
+              }) //second unirest
 
 
-      }) //first unirest
+          }) //first unirest
+      }).catch(e => console.log(e)) //client query ends
 
 
   } //switch ends
