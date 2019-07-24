@@ -59,8 +59,14 @@ const SQL_INSERTS = {
   words: `INSERT INTO words(
                   word
                   ) VALUES($1)
-                  RETURNING *`
-
+                  RETURNING *`,
+  chapters: `INSERT INTO chapters(
+    chapter_summary,
+    chapter_number,
+    chapter_name,
+    name_meaning
+    ) VALUES($1, $2, $3, $4)
+    RETURNING *`
 }
 
 //Apps
@@ -71,6 +77,7 @@ app.use(cors());
 app.get('/movies', getMovies);
 app.get('/quotes', searchQuotes);
 app.get('/words', searchWords);
+app.get('/chapters', returnChapters);
 
 //Any other routes
 app.use('*', (req, res) => {
@@ -103,6 +110,16 @@ function Quotes(quote, movieName, movieID) {
 
 
 /**************************FUNCTIONS******************************************/
+
+
+function returnChapters(request, response) {
+  client.query(`SELECT * FROM chapters`).then(result => {
+    response.send(result.rows);
+  }).catch(error => {
+    console.log(error);
+  })
+
+}
 
 /**
  * Helper function to get the movies for the initial pageload drop-down box in the frontend
@@ -322,67 +339,67 @@ function makeApiCall(tableName, search_value, url) {
 
 
   switch (tableName) {
-    case 'quotes':
-      movieID = url.split('/')[5];
-      arrayOfQuotes = [];
-      return superagent.get(url)
-        .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
-        .then(result => {
-          arrayOfQuotes = result.body.docs.map(item => {
-            const newQuote = new Quotes(item.dialog, search_value, movieID);
-            client.query(
-              SQL_INSERTS[tableName], [newQuote.movieName, newQuote.quote, newQuote.movieID]
-            )
-            return newQuote;
-          })
-          return arrayOfQuotes;
+  case 'quotes':
+    movieID = url.split('/')[5];
+    arrayOfQuotes = [];
+    return superagent.get(url)
+      .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
+      .then(result => {
+        arrayOfQuotes = result.body.docs.map(item => {
+          const newQuote = new Quotes(item.dialog, search_value, movieID);
+          client.query(
+            SQL_INSERTS[tableName], [newQuote.movieName, newQuote.quote, newQuote.movieID]
+          )
+          return newQuote;
         })
+        return arrayOfQuotes;
+      })
 
-    case 'wordsVariations':
-      return client.query(
-        `SELECT id FROM words WHERE word=$1`, [search_value]
-      ).then(sqlResult => {
-        return unirest.get(url + '/examples')
-          .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-          .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-          .then(result => {
-            result.body.examples.map(item => {
-              client.query(
-                SQL_INSERTS['examples'], [item, sqlResult.rows[0].id] //Insert into DB
-              )
-              ex.push(item);
-            })
-            return unirest.get(url + '/definitions')
-              .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-              .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-              .then(result => {
-                result.body.definitions.forEach(item => {
-                  client.query(
-                    SQL_INSERTS['definitions'], [item.definition, sqlResult.rows[0].id] //Insert into DB
-                  )
-                  def.push(item.definition);
-                })
-                return unirest.get(url + '/synonyms')
-                  .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-                  .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-                  .then(result => {
-                    result.body.synonyms.forEach(item => {
-                      client.query(
-                        SQL_INSERTS['synonyms'], [item, sqlResult.rows[0].id] //Insert into DB
-                      )
-                      syn.push(item);
-                    })
-                    words.push(ex);
-                    words.push(def);
-                    words.push(syn);
-                    return words;
+  case 'wordsVariations':
+    return client.query(
+      `SELECT id FROM words WHERE word=$1`, [search_value]
+    ).then(sqlResult => {
+      return unirest.get(url + '/examples')
+        .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+        .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+        .then(result => {
+          result.body.examples.map(item => {
+            client.query(
+              SQL_INSERTS['examples'], [item, sqlResult.rows[0].id] //Insert into DB
+            )
+            ex.push(item);
+          })
+          return unirest.get(url + '/definitions')
+            .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+            .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+            .then(result => {
+              result.body.definitions.forEach(item => {
+                client.query(
+                  SQL_INSERTS['definitions'], [item.definition, sqlResult.rows[0].id] //Insert into DB
+                )
+                def.push(item.definition);
+              })
+              return unirest.get(url + '/synonyms')
+                .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+                .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+                .then(result => {
+                  result.body.synonyms.forEach(item => {
+                    client.query(
+                      SQL_INSERTS['synonyms'], [item, sqlResult.rows[0].id] //Insert into DB
+                    )
+                    syn.push(item);
+                  })
+                  words.push(ex);
+                  words.push(def);
+                  words.push(syn);
+                  return words;
 
-                  })//third unirest
+                })//third unirest
 
-              }) //second unirest
+            }) //second unirest
 
-          }) //first unirest
-      }).catch(e => console.log(e)) //client query ends
+        }) //first unirest
+    }).catch(e => console.log(e)) //client query ends
 
   } //switch ends
 
@@ -424,6 +441,41 @@ function pageLoad() {
   });
 }
 
+/**
+ * Helper function that gets executed when the server starts to get chapters information from the API and store into the DB
+ */
+
+function getChapters() {
+  let url ='https://bhagavadgita.io/auth/oauth/token';
+  return client.query(`SELECT * FROM chapters`).then(result => {
+    if(result.rowCount === 0) {
+      superagent.post(url)
+        .type('form')
+        .send({client_id: process.env.CLIENT_ID})
+        .send({client_secret: process.env.CLIENT_SECRET})
+        .send({'grant_type': 'client_credentials'})
+        .send({'scope': 'verse chapter'})
+        .then(result => {
+          let ACCESS_TOKEN = result.body.access_token;
+          let getUrl = `https://bhagavadgita.io/api/v1/chapters?access_token=${ACCESS_TOKEN}`
+          superagent.get(getUrl).then(result => {
+            result.body.forEach(item => {
+              client.query(
+                SQL_INSERTS['chapters'], [item.chapter_summary, item.chapter_number, item.name, item.name_meaning]
+              )
+            })
+          })
+
+        })
+
+    }
+  }).catch(error => {
+    console.log(error)
+  }) // client query ends
+
+}
+
+
 /**************************FUNCTIONS******************************************/
 
 
@@ -431,4 +483,5 @@ function pageLoad() {
 app.listen(PORT, () => {
   console.log('listing on port', PORT);
   pageLoad();
+  getChapters();
 })
