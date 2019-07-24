@@ -109,9 +109,15 @@ function getWordID(wordToSearch, url) {
     .then(result => {
       if (result.rowCount === 0) {
         console.log('RESULTS FROM WORD API____', result);
-        return makeApiCall('wordsVariations', wordToSearch, url);
+        return client.query(
+          SQL_INSERTS['words'], [wordToSearch]
+        ).then(()=> {
+          return makeApiCall('wordsVariations', wordToSearch, url);
+        })
+
       } else {
-        return 'No data found';
+        return 'Returning from DB yet to work on!';
+
       }
     }).catch(console.error);
 }
@@ -224,41 +230,57 @@ function makeApiCall(tableName, search_value, url) {
       })
 
   case 'wordsVariations':
+    return client.query(
+      `SELECT id FROM words WHERE word=$1`, [search_value]
+    ).then(sqlResult => {
+      //id is the primary key
+      return unirest.get(url + '/examples')
+        .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+        .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+        .then(result => {
+          result.body.examples.map(item => {
+            client.query(
+              SQL_INSERTS['examples'], [item, sqlResult.rows[0].id]  //Insert into DB
+            )
+            ex.push(item);
 
-    return unirest.get(url + '/examples')
-      .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-      .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-      .then(result => {
-        // console.log(result.body);
-        result.body.examples.map(item => {
-          ex.push(item);
-        })
-        return unirest.get(url + '/definitions')
-          .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-          .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-          .then(result => {
-            result.body.definitions.forEach(item => {
-              def.push(item.definition);
-            })
-            return unirest.get(url + '/synonyms')
-              .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-              .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-              .then(result => {
-                result.body.synonyms.forEach(item => {
-                  syn.push(item);
-                })
-                words.push(ex);
-                words.push(def);
-                words.push(syn);
-                return words;
+          })
 
-              })//third unirest
+          return unirest.get(url + '/definitions')
+            .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+            .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+            .then(result => {
+              result.body.definitions.forEach(item => {
+                client.query(
+                  SQL_INSERTS['definitions'], [item.definition, sqlResult.rows[0].id]  //Insert into DB
+                )
+                def.push(item.definition);
+              })
+              return unirest.get(url + '/synonyms')
+                .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+                .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+                .then(result => {
+                  result.body.synonyms.forEach(item => {
+                    client.query(
+                      SQL_INSERTS['synonyms'], [item, sqlResult.rows[0].id]  //Insert into DB
+                    )
+                    syn.push(item);
+                  })
+                  words.push(ex);
+                  words.push(def);
+                  words.push(syn);
+                  return words;
 
-
-          }) //second unirest
+                })//third unirest
 
 
-      }) //first unirest
+            }) //second unirest
+
+
+        }) //first unirest
+
+    }).catch(e => console.log(e)) //client query ends
+
 
 
   } //switch ends
@@ -266,7 +288,6 @@ function makeApiCall(tableName, search_value, url) {
 }
 
 //Send from DB
-
 function sendFromDB(sqlResult) {
   console.log('returning from DB');
   return sqlResult.rows;
