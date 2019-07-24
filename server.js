@@ -44,22 +44,6 @@ function Quotes(quote, movieName, movieID) {
   this.movieID = movieID;
 }
 
-function Words(data) {
-  this.word = data.word;
-}
-
-function Definitions(data) {
-  this.definition = data.definition;
-}
-
-function Synonyms(data) {
-  this.synonym = data.synonym;
-}
-
-function Examples(data) {
-  this.example = data.example;
-}
-
 function getMovies(request, response) {
   let finalMovies = [];
   (client.query(`SELECT * FROM movies`).then(result => {
@@ -71,7 +55,6 @@ function getMovies(request, response) {
     response.send(finalMovies);
   }));
 }
-
 
 function getMovieID(movieName) {
 
@@ -93,7 +76,6 @@ function searchWords(request, response) {
   const url = `https://wordsapiv1.p.rapidapi.com/words/${wordToSearch}`;
 
   getWordID(wordToSearch, url).then(data => {
-    console.log('DATA___', data);
     response.send(data);
   });
 
@@ -118,6 +100,7 @@ function getWordID(wordToSearch, url) {
       } else {
         console.log('RETURNING FROM DB');
         let wordID = result.rows[0].id;
+        console.log('Word ID___', wordID);
         return cacheHit(wordID);
       }
     }).catch(console.error);
@@ -126,40 +109,47 @@ function getWordID(wordToSearch, url) {
 function cacheHit(wordID) {
 
   let wordResult = [];
-  let examples = getExamples(wordID);
-  let definitions = getDefinitions(wordID);
-  let synonyms = getSynonyms(wordID);
 
-  wordResult.push(examples);
-  wordResult.push(definitions);
-  wordResult.push(synonyms);
-
-  return wordResult;
-
+  return getExamples(wordID).then(examples => {
+    return getDefinitions(wordID).then(definitions => {
+      return getSynonyms(wordID).then(synonyms => {
+        wordResult.push(examples);
+        wordResult.push(definitions);
+        wordResult.push(synonyms);
+        return wordResult;
+      });//syn ends
+    });//defn
+  });//examples
 }
 
 function getExamples(wordID) {
+
+  let examples = [];
+  console.log('Word ID in getExamples___', wordID);
   const SQL = `SELECT * FROM examples WHERE word_id=$1;`;
   const values = [wordID];
 
   return client.query(SQL, values)
     .then(result => {
-      if (result.rowCount > 0) {
-        return result.rows;
-      }
+      result.rows.map(item => {
+        examples.push(item.example);
+      })
+      return examples;
     })
     .catch(console.error);
 }
 
 function getDefinitions(wordID) {
+  let definitions = [];
   const SQL = `SELECT * FROM definitions WHERE word_id=$1;`;
   const values = [wordID];
 
   return client.query(SQL, values)
     .then(result => {
-      if (result.rowCount > 0) {
-        return result.rows;
-      }
+      result.rows.map(item => {
+        definitions.push(item.def);
+      })
+      return definitions;
     })
     .catch(console.error);
 }
@@ -167,12 +157,14 @@ function getDefinitions(wordID) {
 function getSynonyms(wordID) {
   const SQL = `SELECT * FROM synonyms WHERE word_id=$1;`;
   const values = [wordID];
+  let synonyms = [];
 
   return client.query(SQL, values)
     .then(result => {
-      if (result.rowCount > 0) {
-        return result.rows;
-      }
+      result.rows.map(item => {
+        synonyms.push(item.syn);
+      })
+      return synonyms;
     })
     .catch(console.error);
 }
@@ -194,7 +186,6 @@ function searchQuotes(request, response) {
         console.log(e);
       });
   });
-
 }
 
 //SQL INSERTS
@@ -236,7 +227,6 @@ const SQL_INSERTS = {
                   ) VALUES($1)
                   RETURNING *`
 
-
 }
 
 //Check DB
@@ -250,7 +240,6 @@ function checkDB(search_query, search_value, url, tableName) {
         return sendFromDB(sqlResult);
       }
     })
-
 }
 
 //make API Call
@@ -279,7 +268,6 @@ function makeApiCall(tableName, search_value, url) {
               SQL_INSERTS[tableName], [newQuote.movieName, newQuote.quote, newQuote.movieID]
             )
             return newQuote;
-
           })
           return arrayOfQuotes;
         })
@@ -289,7 +277,6 @@ function makeApiCall(tableName, search_value, url) {
         `SELECT id FROM words WHERE word=$1`, [search_value]
       ).then(sqlResult => {
         //id is the primary key
-
         return unirest.get(url + '/examples')
           .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
           .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
@@ -309,7 +296,6 @@ function makeApiCall(tableName, search_value, url) {
                   client.query(
                     SQL_INSERTS['definitions'], [item.definition, sqlResult.rows[0].id]  //Insert into DB
                   )
-
                   def.push(item.definition);
                 })
                 return unirest.get(url + '/synonyms')
@@ -320,7 +306,6 @@ function makeApiCall(tableName, search_value, url) {
                       client.query(
                         SQL_INSERTS['synonyms'], [item, sqlResult.rows[0].id]  //Insert into DB
                       )
-
                       syn.push(item);
                     })
                     words.push(ex);
@@ -330,13 +315,10 @@ function makeApiCall(tableName, search_value, url) {
 
                   })//third unirest
 
-
               }) //second unirest
-
 
           }) //first unirest
       }).catch(e => console.log(e)) //client query ends
-
 
   } //switch ends
 
