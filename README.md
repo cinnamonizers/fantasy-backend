@@ -31,6 +31,8 @@ sendFromDB - Helper function to access sql results and send it back to the first
 
 pageLoad - Initialization function that makes an API call to get movie information if not in the database
 
+getChapters - Helper function that gets executed when the server starts to get chapters information from the API and store into the DB
+
 # Change Log
 
 # Day 1
@@ -52,3 +54,4 @@ pageLoad - Initialization function that makes an API call to get movie informati
 1. Full data persistence achieved. Working Movies, Quotes and Words routes.
 2. Refactor existing code base.
 3. Deployed master branch on Heroku.
+4. Implemented API call and data storage for the stretch goal.
