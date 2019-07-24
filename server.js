@@ -1,3 +1,9 @@
+/**
+ *- Project: Fantasy-wordbook
+ *- Team: Cinnamonizer
+ *- Definition: This serves as a backend to the project. Hanldes client request for movies, quotes & words *
+ */
+
 'Use strict'
 
 //Dependencies
@@ -21,8 +27,7 @@ client.on('error', error => {
 const app = express();
 app.use(cors());
 
-//Routes
-
+//Routes for the client requests
 app.get('/movies', getMovies);
 app.get('/quotes', searchQuotes);
 app.get('/words', searchWords);
@@ -32,18 +37,38 @@ app.use('*', (req, res) => {
   res.send('You got in the wrong place')
 })
 
-//Constructors
+/*************************CONSTRUCTORS****************************************** */
+/**
+ * Constructs a movie object to return to front end and also store in database
+ * @param {*} id : unique String for each movie
+ * @param {*} name : name of the movie *
+ */
 function Movie(id, name) {
   this.movieID = id;
   this.movieName = name;
 }
 
+/**
+ * Constructs a quote object to return to front end and also store in database
+ * @param {*} quote : quote from the movie chosen
+ * @param {*} movieName : name of the movie that is used to generate the quote from the API
+ * @param {*} movieID : unique movie ID received from API call and stored in database
+ */
 function Quotes(quote, movieName, movieID) {
   this.movieName = movieName;
   this.quote = quote;
   this.movieID = movieID;
 }
+/*************************CONSTRUCTORS****************************************** */
 
+
+/**************************FUNCTIONS******************************************/
+
+/**
+ * Helper function to get the movies for the initial pageload drop-down box in the frontend
+ * @param {*} request : request from the client
+ * @param {*} response : response to the client
+ */
 function getMovies(request, response) {
   let finalMovies = [];
   (client.query(`SELECT * FROM movies`).then(result => {
@@ -56,20 +81,12 @@ function getMovies(request, response) {
   }));
 }
 
-function getMovieID(movieName) {
-
-  const SQL = `SELECT movie_id FROM movies WHERE movie_name=$1;`;
-  const values = [movieName];
-  let movieID = '';
-
-  return client.query(SQL, values)
-    .then(result => {
-      movieID = result.rows[0].movie_id;
-      return movieID;
-    })
-    .catch(console.error);
-}
-
+/**
+ * Helper function to the words route that makes necessary API call or get
+ * results from the database
+ * @param {*} request : request from the front end
+ * @param {*} response : response to the front end
+ */
 function searchWords(request, response) {
   console.log('here at search words');
   let wordToSearch = request.query.data || 'kind';
@@ -78,36 +95,40 @@ function searchWords(request, response) {
   getWordID(wordToSearch, url).then(data => {
     response.send(data);
   });
-
-
 }
 
+/**
+ * Helper function to the {function: searchWords}.
+ * Gets the wordID for the words to search to make necessary DB calls
+ * @param {*} wordToSearch : argument from the front-end to search the given word
+ * @param {*} url : API url used by superagent or unirest
+ */
 function getWordID(wordToSearch, url) {
-
   const SQL = `SELECT id FROM words WHERE word=$1;`;
   const values = [wordToSearch];
 
   return client.query(SQL, values)
     .then(result => {
       if (result.rowCount === 0) {
-        console.log('RESULTS FROM WORD API____', result);
         return client.query(
           SQL_INSERTS['words'], [wordToSearch]
         ).then(() => {
           return makeApiCall('wordsVariations', wordToSearch, url);
         })
-
       } else {
         console.log('RETURNING FROM DB');
         let wordID = result.rows[0].id;
-        console.log('Word ID___', wordID);
         return cacheHit(wordID);
       }
     }).catch(console.error);
 }
 
+/**
+ * Helper function to {function: getWordID} which returns the synonyms, definitions and examples
+ * for the words searched from the database
+ * @param {*} wordID : an argument to make necessary DB calls
+ */
 function cacheHit(wordID) {
-
   let wordResult = [];
 
   return getExamples(wordID).then(examples => {
@@ -122,10 +143,13 @@ function cacheHit(wordID) {
   });//examples
 }
 
-function getExamples(wordID) {
+/**
+ * Helper function to {function: cacheHit} which returns the examples from the DB
+ * @param {*} wordID : an argument to get examples from the DB
+ */
 
+function getExamples(wordID) {
   let examples = [];
-  console.log('Word ID in getExamples___', wordID);
   const SQL = `SELECT * FROM examples WHERE word_id=$1;`;
   const values = [wordID];
 
@@ -139,6 +163,10 @@ function getExamples(wordID) {
     .catch(console.error);
 }
 
+/**
+ * Helper function to {function: cacheHit} which returns the definitions from the DB
+ * @param {*} wordID : an argument to get definitions from the DB
+ */
 function getDefinitions(wordID) {
   let definitions = [];
   const SQL = `SELECT * FROM definitions WHERE word_id=$1;`;
@@ -154,6 +182,10 @@ function getDefinitions(wordID) {
     .catch(console.error);
 }
 
+/**
+ * Helper function to {function: cacheHit} which returns the synonyms from the DB
+ * @param {*} wordID : an argument to get synonyms from the DB
+ */
 function getSynonyms(wordID) {
   const SQL = `SELECT * FROM synonyms WHERE word_id=$1;`;
   const values = [wordID];
@@ -169,6 +201,11 @@ function getSynonyms(wordID) {
     .catch(console.error);
 }
 
+/**
+ * Helper function to quotes route which used movie ID to make neccesary API calls and query database
+ * @param {*} request : request from the front end
+ * @param {*} response : response to the front end
+ */
 function searchQuotes(request, response) {
   console.log('here at search quotes');
   let movieName = request.query.data || 'The Fellowship of the Ring';
@@ -188,7 +225,28 @@ function searchQuotes(request, response) {
   });
 }
 
-//SQL INSERTS
+/**
+ * Helper function to get the movie ID of the movie name which is passed as a parameter.
+ * The parameter is passed from front end. The function is used by quotes route to make
+ * API call using movie ID
+ * @param {*} movieName : name of the movie passed from front end
+ */
+function getMovieID(movieName) {
+  const SQL = `SELECT movie_id FROM movies WHERE movie_name=$1;`;
+  const values = [movieName];
+  let movieID = '';
+
+  return client.query(SQL, values)
+    .then(result => {
+      movieID = result.rows[0].movie_id;
+      return movieID;
+    })
+    .catch(console.error);
+}
+
+/**
+ * Helper function to make necessary INSERTS to the DB
+ */
 const SQL_INSERTS = {
 
   movies: `INSERT INTO movies(
@@ -229,7 +287,14 @@ const SQL_INSERTS = {
 
 }
 
-//Check DB
+/**
+ * Helper function to check database and make api call if data does not exist.
+ * Otherwise, it retrieves from database
+ * @param {*} search_query : column name for the database
+ * @param {*} search_value : column value to search for
+ * @param {*} url : url to make API call
+ * @param {*} tableName : table from DB to work with
+ */
 
 function checkDB(search_query, search_value, url, tableName) {
   return client.query(`SELECT * FROM ${tableName} WHERE ${search_query} = $1`, [search_value])
@@ -242,8 +307,12 @@ function checkDB(search_query, search_value, url, tableName) {
     })
 }
 
-//make API Call
-
+/**
+ * Helper function to make relevant API call and store in DB based on the parameters passed
+ * @param {*} tableName : table from DB to work with
+ * @param {*} search_value : column value to search for
+ * @param {*} url : url to make API call
+ */
 function makeApiCall(tableName, search_value, url) {
 
   console.log('Making an API call');
@@ -256,82 +325,87 @@ function makeApiCall(tableName, search_value, url) {
 
 
   switch (tableName) {
-    case 'quotes':
-      movieID = url.split('/')[5];
-      arrayOfQuotes = [];
-      return superagent.get(url)
-        .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
-        .then(result => {
-          arrayOfQuotes = result.body.docs.map(item => {
-            const newQuote = new Quotes(item.dialog, search_value, movieID);
-            client.query(
-              SQL_INSERTS[tableName], [newQuote.movieName, newQuote.quote, newQuote.movieID]
-            )
-            return newQuote;
-          })
-          return arrayOfQuotes;
+  case 'quotes':
+    movieID = url.split('/')[5];
+    arrayOfQuotes = [];
+    return superagent.get(url)
+      .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
+      .then(result => {
+        arrayOfQuotes = result.body.docs.map(item => {
+          const newQuote = new Quotes(item.dialog, search_value, movieID);
+          client.query(
+            SQL_INSERTS[tableName], [newQuote.movieName, newQuote.quote, newQuote.movieID]
+          )
+          return newQuote;
         })
+        return arrayOfQuotes;
+      })
 
-    case 'wordsVariations':
-      return client.query(
-        `SELECT id FROM words WHERE word=$1`, [search_value]
-      ).then(sqlResult => {
-        //id is the primary key
-        return unirest.get(url + '/examples')
-          .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-          .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-          .then(result => {
-            // console.log(result.body);
-            result.body.examples.map(item => {
-              client.query(
-                SQL_INSERTS['examples'], [item, sqlResult.rows[0].id]  //Insert into DB
-              )
-              ex.push(item);
-            })
-            return unirest.get(url + '/definitions')
-              .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-              .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-              .then(result => {
-                result.body.definitions.forEach(item => {
-                  client.query(
-                    SQL_INSERTS['definitions'], [item.definition, sqlResult.rows[0].id]  //Insert into DB
-                  )
-                  def.push(item.definition);
-                })
-                return unirest.get(url + '/synonyms')
-                  .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-                  .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-                  .then(result => {
-                    result.body.synonyms.forEach(item => {
-                      client.query(
-                        SQL_INSERTS['synonyms'], [item, sqlResult.rows[0].id]  //Insert into DB
-                      )
-                      syn.push(item);
-                    })
-                    words.push(ex);
-                    words.push(def);
-                    words.push(syn);
-                    return words;
+  case 'wordsVariations':
+    return client.query(
+      `SELECT id FROM words WHERE word=$1`, [search_value]
+    ).then(sqlResult => {
+      return unirest.get(url + '/examples')
+        .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+        .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+        .then(result => {
+          result.body.examples.map(item => {
+            client.query(
+              SQL_INSERTS['examples'], [item, sqlResult.rows[0].id] //Insert into DB
+            )
+            ex.push(item);
+          })
+          return unirest.get(url + '/definitions')
+            .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+            .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+            .then(result => {
+              result.body.definitions.forEach(item => {
+                client.query(
+                  SQL_INSERTS['definitions'], [item.definition, sqlResult.rows[0].id] //Insert into DB
+                )
+                def.push(item.definition);
+              })
+              return unirest.get(url + '/synonyms')
+                .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+                .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+                .then(result => {
+                  result.body.synonyms.forEach(item => {
+                    client.query(
+                      SQL_INSERTS['synonyms'], [item, sqlResult.rows[0].id] //Insert into DB
+                    )
+                    syn.push(item);
+                  })
+                  words.push(ex);
+                  words.push(def);
+                  words.push(syn);
+                  return words;
 
-                  })//third unirest
+                })//third unirest
 
-              }) //second unirest
+            }) //second unirest
 
-          }) //first unirest
-      }).catch(e => console.log(e)) //client query ends
+        }) //first unirest
+    }).catch(e => console.log(e)) //client query ends
 
   } //switch ends
 
 }
 
-//Send from DB
+/**
+ * Helper function to access sql results and send it back to the first caller in the stack
+ * @param {*} sqlResult : the result from the DB
+ */
 
 function sendFromDB(sqlResult) {
   console.log('returning from DB');
   return sqlResult.rows;
 }
 
-function startServer() {
+/**
+ * Initialization function that makes a necessary API call if movie information
+ * is not in the database
+ */
+function pageLoad() {
   let arrayOfMovies = [];
   return client.query(`SELECT * FROM movies`).then(result => {
     if (result.rowCount === 0) {
@@ -354,9 +428,11 @@ function startServer() {
   });
 }
 
+/**************************FUNCTIONS******************************************/
+
+
 //Starting Server
 app.listen(PORT, () => {
   console.log('listing on port', PORT);
-  startServer();
-
+  pageLoad();
 })
