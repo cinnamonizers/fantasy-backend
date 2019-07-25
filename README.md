@@ -4,34 +4,40 @@ For project information please refer back to https://github.com/cinnamonizers/fa
 
 # Functions List
 
-getMovies - Helper function to get the movies for the initial pageload drop-down box in the frontend
+- getMovies - Helper function to get the movies for the initial pageload drop-down box in the frontend
 
-searchWords - Helper function to the words route that makes necessary API call or gets results from the database
+- searchWords - Helper function to the words route that makes necessary API call or gets results from the database
 
-getWordID - Helper function to the {function: searchWords}. Gets the wordID for the words to search to make necessary DB calls. Needed as Word ID is the primary key
+- getWordID - Helper function to the {function: searchWords}. Gets the wordID for the words to search to make necessary DB calls. Needed as Word ID is the primary key
 
-cacheHit - Helper function to {function: getWordID} which returns the synonyms, definitions and examples from the database for the words searched
+- cacheHit - Helper function to {function: getWordID} which returns the synonyms, definitions and examples from the database for the words searched
 
-getExamples - Helper function to {function: cacheHit} which returns the examples of word usage from the DB
+- getExamples - Helper function to {function: cacheHit} which returns the examples of word usage from the DB
 
-getDefinitions - Helper function to {function: cacheHit} which returns the definitions of the word searched from the DB
+- getDefinitions - Helper function to {function: cacheHit} which returns the definitions of the word searched from the DB
 
-getSynonyms - Helper function to {function: cacheHit} which returns the synonyms of the words searched from the DB
+- getSynonyms - Helper function to {function: cacheHit} which returns the synonyms of the words searched from the DB
 
-searchQuotes - Helper function to quotes route which uses movie ID to make neccesary API calls or query database
+- searchQuotes - Helper function to quotes route which uses movie ID to make neccesary API calls or query database
 
-getMovieID - Helper function to get the movie ID of the movie whose name which is passed as a parameter.
+- getMovieID - Helper function to get the movie ID of the movie whose name which is passed as a parameter.
 
-checkDB - Helper function to check database and make api call if data does not exist.
+- checkDB - Helper function to check database and make api call if data does not exist.
 Otherwise, retrieve from database
 
-makeApiCall - Helper function to make relevant API call and store in DB based on the parameters passed
+- makeApiCall - Helper function to make relevant API call and store in DB based on the parameters passed
 
-sendFromDB - Helper function to access sql results and send it back to the first caller in the stack
+- sendFromDB - Helper function to access sql results and send it back to the first caller in the stack
 
-pageLoad - Initialization function that makes an API call to get movie information if not in the database
+- pageLoad - Initialization function that makes an API call to get movie information if not in the database
 
-getChapters - Helper function that gets executed when the server starts to get chapters information from the API and store into the DB
+- getChapters - Helper function that gets executed when the server starts to get chapters information from the API and store into the DB
+
+- returnChapters - Helper function to return bhagavad gita chapters to the front end when requested
+
+- returnVerses - Helper function to return bhagavad gita verses to the front end when requested
+
+- getVerses - Helper function that gets executed when the server starts to get verses information from the API and store into the DB
 
 # Change Log
 
