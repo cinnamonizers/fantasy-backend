@@ -361,67 +361,67 @@ function makeApiCall(tableName, search_value, url) {
 
 
   switch (tableName) {
-    case 'quotes':
-      movieID = url.split('/')[5];
-      arrayOfQuotes = [];
-      return superagent.get(url)
-        .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
-        .then(result => {
-          arrayOfQuotes = result.body.docs.map(item => {
-            const newQuote = new Quotes(item.dialog, search_value, movieID);
-            client.query(
-              SQL_INSERTS[tableName], [newQuote.movieName, newQuote.quote, newQuote.movieID]
-            )
-            return newQuote;
-          })
-          return arrayOfQuotes;
+  case 'quotes':
+    movieID = url.split('/')[5];
+    arrayOfQuotes = [];
+    return superagent.get(url)
+      .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
+      .then(result => {
+        arrayOfQuotes = result.body.docs.map(item => {
+          const newQuote = new Quotes(item.dialog, search_value, movieID);
+          client.query(
+            SQL_INSERTS[tableName], [newQuote.movieName, newQuote.quote, newQuote.movieID]
+          )
+          return newQuote;
         })
+        return arrayOfQuotes;
+      })
 
-    case 'wordsVariations':
-      return client.query(
-        `SELECT id FROM words WHERE word=$1`, [search_value]
-      ).then(sqlResult => {
-        return unirest.get(url + '/examples')
-          .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-          .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-          .then(result => {
-            result.body.examples.map(item => {
-              client.query(
-                SQL_INSERTS['examples'], [item, sqlResult.rows[0].id] //Insert into DB
-              )
-              ex.push(item);
-            })
-            return unirest.get(url + '/definitions')
-              .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-              .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-              .then(result => {
-                result.body.definitions.forEach(item => {
-                  client.query(
-                    SQL_INSERTS['definitions'], [item.definition, sqlResult.rows[0].id] //Insert into DB
-                  )
-                  def.push(item.definition);
-                })
-                return unirest.get(url + '/synonyms')
-                  .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-                  .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-                  .then(result => {
-                    result.body.synonyms.forEach(item => {
-                      client.query(
-                        SQL_INSERTS['synonyms'], [item, sqlResult.rows[0].id] //Insert into DB
-                      )
-                      syn.push(item);
-                    })
-                    words.push(ex);
-                    words.push(def);
-                    words.push(syn);
-                    return words;
+  case 'wordsVariations':
+    return client.query(
+      `SELECT id FROM words WHERE word=$1`, [search_value]
+    ).then(sqlResult => {
+      return unirest.get(url + '/examples')
+        .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+        .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+        .then(result => {
+          result.body.examples.map(item => {
+            client.query(
+              SQL_INSERTS['examples'], [item, sqlResult.rows[0].id] //Insert into DB
+            )
+            ex.push(item);
+          })
+          return unirest.get(url + '/definitions')
+            .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+            .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+            .then(result => {
+              result.body.definitions.forEach(item => {
+                client.query(
+                  SQL_INSERTS['definitions'], [item.definition, sqlResult.rows[0].id] //Insert into DB
+                )
+                def.push(item.definition);
+              })
+              return unirest.get(url + '/synonyms')
+                .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+                .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+                .then(result => {
+                  result.body.synonyms.forEach(item => {
+                    client.query(
+                      SQL_INSERTS['synonyms'], [item, sqlResult.rows[0].id] //Insert into DB
+                    )
+                    syn.push(item);
+                  })
+                  words.push(ex);
+                  words.push(def);
+                  words.push(syn);
+                  return words;
 
-                  })//third unirest
+                })//third unirest
 
-              }) //second unirest
+            }) //second unirest
 
-          }) //first unirest
-      }).catch(e => console.log(e)) //client query ends
+        }) //first unirest
+    }).catch(e => console.log(e)) //client query ends
 
   } //switch ends
 
@@ -518,7 +518,7 @@ function getVerses(request, response) {
           superagent.get(getUrl).then(result => {
             result.body.forEach(item => {
               client.query(
-                SQL_INSERTS['verses'], [item.chapter_number, item.verse_number, item.text, item.transliteration, item.meaning, item.word_meanings]
+                SQL_INSERTS['verses'], [item.chapter_number, parseInt(item.verse_number), item.text, item.transliteration, item.meaning, item.word_meanings]
               )
             })
           })
