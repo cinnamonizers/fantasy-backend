@@ -61,13 +61,23 @@ const SQL_INSERTS = {
                   ) VALUES($1)
                   RETURNING *`,
   chapters: `INSERT INTO chapters(
-    chapter_summary,
-    chapter_number,
-    chapter_name,
-    name_meaning
+      chapter_summary,
+      chapter_number,
+      chapter_name,
+      name_meaning
     ) VALUES($1, $2, $3, $4)
-    RETURNING *`
+    RETURNING *`,
+  verses: `INSERT INTO verses(
+    chapter_number,
+    verse_number,
+    verse_text,
+    verse_transliteration,
+    verse_meaning,
+    verse_word_meanings
+      ) VALUES($1, $2, $3, $4, $5, $6)
+      RETURNING *`
 }
+
 
 //Apps
 const app = express();
@@ -78,6 +88,7 @@ app.get('/movies', getMovies);
 app.get('/quotes', searchQuotes);
 app.get('/words', searchWords);
 app.get('/chapters', returnChapters);
+app.get('/verses', getVerses);
 
 //Any other routes
 app.use('*', (req, res) => {
@@ -339,67 +350,67 @@ function makeApiCall(tableName, search_value, url) {
 
 
   switch (tableName) {
-  case 'quotes':
-    movieID = url.split('/')[5];
-    arrayOfQuotes = [];
-    return superagent.get(url)
-      .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
-      .then(result => {
-        arrayOfQuotes = result.body.docs.map(item => {
-          const newQuote = new Quotes(item.dialog, search_value, movieID);
-          client.query(
-            SQL_INSERTS[tableName], [newQuote.movieName, newQuote.quote, newQuote.movieID]
-          )
-          return newQuote;
-        })
-        return arrayOfQuotes;
-      })
-
-  case 'wordsVariations':
-    return client.query(
-      `SELECT id FROM words WHERE word=$1`, [search_value]
-    ).then(sqlResult => {
-      return unirest.get(url + '/examples')
-        .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-        .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+    case 'quotes':
+      movieID = url.split('/')[5];
+      arrayOfQuotes = [];
+      return superagent.get(url)
+        .set('Authorization', `Bearer ${process.env.MOVIE_API_KEY}`)
         .then(result => {
-          result.body.examples.map(item => {
+          arrayOfQuotes = result.body.docs.map(item => {
+            const newQuote = new Quotes(item.dialog, search_value, movieID);
             client.query(
-              SQL_INSERTS['examples'], [item, sqlResult.rows[0].id] //Insert into DB
+              SQL_INSERTS[tableName], [newQuote.movieName, newQuote.quote, newQuote.movieID]
             )
-            ex.push(item);
+            return newQuote;
           })
-          return unirest.get(url + '/definitions')
-            .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-            .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-            .then(result => {
-              result.body.definitions.forEach(item => {
-                client.query(
-                  SQL_INSERTS['definitions'], [item.definition, sqlResult.rows[0].id] //Insert into DB
-                )
-                def.push(item.definition);
-              })
-              return unirest.get(url + '/synonyms')
-                .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
-                .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
-                .then(result => {
-                  result.body.synonyms.forEach(item => {
-                    client.query(
-                      SQL_INSERTS['synonyms'], [item, sqlResult.rows[0].id] //Insert into DB
-                    )
-                    syn.push(item);
-                  })
-                  words.push(ex);
-                  words.push(def);
-                  words.push(syn);
-                  return words;
+          return arrayOfQuotes;
+        })
 
-                })//third unirest
+    case 'wordsVariations':
+      return client.query(
+        `SELECT id FROM words WHERE word=$1`, [search_value]
+      ).then(sqlResult => {
+        return unirest.get(url + '/examples')
+          .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+          .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+          .then(result => {
+            result.body.examples.map(item => {
+              client.query(
+                SQL_INSERTS['examples'], [item, sqlResult.rows[0].id] //Insert into DB
+              )
+              ex.push(item);
+            })
+            return unirest.get(url + '/definitions')
+              .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+              .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+              .then(result => {
+                result.body.definitions.forEach(item => {
+                  client.query(
+                    SQL_INSERTS['definitions'], [item.definition, sqlResult.rows[0].id] //Insert into DB
+                  )
+                  def.push(item.definition);
+                })
+                return unirest.get(url + '/synonyms')
+                  .header('X-RapidAPI-Host', 'wordsapiv1.p.rapidapi.com')
+                  .header('X-RapidAPI-Key', process.env.WORDS_API_KEY)
+                  .then(result => {
+                    result.body.synonyms.forEach(item => {
+                      client.query(
+                        SQL_INSERTS['synonyms'], [item, sqlResult.rows[0].id] //Insert into DB
+                      )
+                      syn.push(item);
+                    })
+                    words.push(ex);
+                    words.push(def);
+                    words.push(syn);
+                    return words;
 
-            }) //second unirest
+                  })//third unirest
 
-        }) //first unirest
-    }).catch(e => console.log(e)) //client query ends
+              }) //second unirest
+
+          }) //first unirest
+      }).catch(e => console.log(e)) //client query ends
 
   } //switch ends
 
@@ -446,15 +457,15 @@ function pageLoad() {
  */
 
 function getChapters() {
-  let url ='https://bhagavadgita.io/auth/oauth/token';
+  let url = 'https://bhagavadgita.io/auth/oauth/token';
   return client.query(`SELECT * FROM chapters`).then(result => {
-    if(result.rowCount === 0) {
+    if (result.rowCount === 0) {
       superagent.post(url)
         .type('form')
-        .send({client_id: process.env.CLIENT_ID})
-        .send({client_secret: process.env.CLIENT_SECRET})
-        .send({'grant_type': 'client_credentials'})
-        .send({'scope': 'verse chapter'})
+        .send({ client_id: process.env.CLIENT_ID })
+        .send({ client_secret: process.env.CLIENT_SECRET })
+        .send({ 'grant_type': 'client_credentials' })
+        .send({ 'scope': 'verse chapter' })
         .then(result => {
           let ACCESS_TOKEN = result.body.access_token;
           let getUrl = `https://bhagavadgita.io/api/v1/chapters?access_token=${ACCESS_TOKEN}`
@@ -475,6 +486,35 @@ function getChapters() {
 
 }
 
+function getVerses(request, response) {
+  console.log('here in Get Verses');
+  let url = 'https://bhagavadgita.io/auth/oauth/token';
+  return client.query(`SELECT * FROM verses`).then(result => {
+    if (result.rowCount === 0) {
+      superagent.post(url)
+        .type('form')
+        .send({ client_id: process.env.CLIENT_ID })
+        .send({ client_secret: process.env.CLIENT_SECRET })
+        .send({ 'grant_type': 'client_credentials' })
+        .send({ 'scope': 'verse chapter' })
+        .then(result => {
+          let ACCESS_TOKEN = result.body.access_token;
+          let getUrl = `https://bhagavadgita.io/api/v1/verses?access_token=${ACCESS_TOKEN}`
+          superagent.get(getUrl).then(result => {
+            result.body.forEach(item => {
+              client.query(
+                SQL_INSERTS['verses'], [item.chapter_number, item.verse_number, item.text, item.transliteration, item.meaning, item.word_meanings]
+              )
+            })
+          })
+
+        })
+
+    }
+  }).catch(error => {
+    console.log(error)
+  }) // client query ends
+}
 
 /**************************FUNCTIONS******************************************/
 

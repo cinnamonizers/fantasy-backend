@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS quotes;
 DROP TABLE IF EXISTS movies;
 DROP TABLE IF EXISTS words;
 DROP TABLE IF EXISTS chapters;
+DROP TABLE IF EXISTS verses;
 
 CREATE TABLE movies(
   id SERIAL,
@@ -45,6 +46,7 @@ quote TEXT,
 movie_id VARCHAR(255) NOT NULL,
   FOREIGN KEY (movie_id) REFERENCES movies (movie_id)
 );
+
 CREATE TABLE chapters(
 id SERIAL PRIMARY KEY,
 chapter_summary TEXT,
@@ -52,5 +54,15 @@ chapter_number INTEGER,
 chapter_name VARCHAR(255),
 name_meaning VARCHAR(255)
 );
+
+CREATE TABLE verses(
+  id SERIAL PRIMARY KEY,
+  chapter_number INTEGER,
+  verse_number CHAR(10),
+  verse_text TEXT,
+  verse_transliteration TEXT,
+  verse_meaning TEXT,
+  verse_word_meanings TEXT
+)
 
 
