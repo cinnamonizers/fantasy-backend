@@ -47,18 +47,18 @@ Otherwise, retrieve from database
 2. Set up Trello Board and GitHub repository.
 3. Listed functions and components and started work on MVP.
 4. Working movies and quotes routes returning data back from API calls.
-5. Decide and create backend table structures for Movies and Quotes data.
+5. Decided and created backend table structures for Movies and Quotes data.
 
 # Day 2
 
 1. Persisted Movie and Quotes data to database.
-2. Restructure table for movies to work with quotes data. 
-3. Integrate words API without full DB persistence.
+2. Restructured table for movies to work with quotes data. 
+3. Integrated words API without full DB persistence.
 
 # Day 3
 
 1. Full data persistence achieved. Working Movies, Quotes and Words routes.
-2. Refactor existing code base.
+2. Refactored existing code base.
 3. Deployed master branch on Heroku.
 4. Implemented API call and data storage for the stretch goal.
 
