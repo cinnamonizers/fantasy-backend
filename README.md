@@ -61,3 +61,9 @@ Otherwise, retrieve from database
 2. Refactor existing code base.
 3. Deployed master branch on Heroku.
 4. Implemented API call and data storage for the stretch goal.
+
+# Day 4
+
+1. Integrated the verses data with the front end.
+2. Merged dev with master and deployed master on heroku.
+3. Website is now online at www.fantasy-wordbook.com
