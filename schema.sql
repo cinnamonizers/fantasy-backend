@@ -58,7 +58,7 @@ name_meaning VARCHAR(255)
 CREATE TABLE verses(
   id SERIAL PRIMARY KEY,
   chapter_number INTEGER,
-  verse_number CHAR(10),
+  verse_number CHAR(3),
   verse_text TEXT,
   verse_transliteration TEXT,
   verse_meaning TEXT,

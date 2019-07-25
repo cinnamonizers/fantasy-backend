@@ -88,7 +88,7 @@ app.get('/movies', getMovies);
 app.get('/quotes', searchQuotes);
 app.get('/words', searchWords);
 app.get('/chapters', returnChapters);
-app.get('/verses', getVerses);
+app.get('/verses', returnVerses);
 
 //Any other routes
 app.use('*', (req, res) => {
@@ -123,8 +123,19 @@ function Quotes(quote, movieName, movieID) {
 /**************************FUNCTIONS******************************************/
 
 
+/* Helper function to return bhagavad gita chapters to the front end when requested */
 function returnChapters(request, response) {
   client.query(`SELECT * FROM chapters`).then(result => {
+    response.send(result.rows);
+  }).catch(error => {
+    console.log(error);
+  })
+
+}
+
+/* Helper function to return bhagavad gita verses to the front end when requested */
+function returnVerses(request, response) {
+  client.query(`SELECT * FROM verses`).then(result => {
     response.send(result.rows);
   }).catch(error => {
     console.log(error);
@@ -486,6 +497,10 @@ function getChapters() {
 
 }
 
+/**
+ * Helper function that gets executed when the server starts to get verses information from the API and store into the DB
+ */
+
 function getVerses(request, response) {
   console.log('here in Get Verses');
   let url = 'https://bhagavadgita.io/auth/oauth/token';
@@ -524,4 +539,5 @@ app.listen(PORT, () => {
   console.log('listing on port', PORT);
   pageLoad();
   getChapters();
+  getVerses();
 })
