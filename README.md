@@ -44,37 +44,67 @@ Otherwise, retrieve from database
 Movies
 
 [
+
 {
+
 id: 6,
+
 movie_id: '5cd95395de30eff6ebccde5b',
+
 movie_name: 'The Two Towers '
+
 },
+
 {
+
 id: 7,
+
 movie_id: '5cd95395de30eff6ebccde5c',
+
 movie_name: 'The Fellowship of the Ring'
+
 },
+
 {
+
 id: 8,
+
 movie_id: '5cd95395de30eff6ebccde5d',
+
 movie_name: 'The Return of the King'
+
 }
+
 ]
 
 Quotes sample
+
 {
+
 id: 2,
+
 movie_name: 'The Fellowship of the Ring',
+
 quote: 'Who is she ? This woman you sing of ?',
+
 movie_id: '5cd95395de30eff6ebccde5c'
+
 },
+
 {
+
 id: 3,
+
 movie_name: 'The Fellowship of the Ring',
+
 quote: "Tis the Lady of L'thien. The Elf Maiden " +
+
 'who gave her love to Beren ... a ' +
+
 'mortal',
+
 movie_id: '5cd95395de30eff6ebccde5c'
+
 }
 
 ### Words API
@@ -82,43 +112,43 @@ Sample - examples, definition and synonyms for words selected (kind)
 
 [
 
-  [
+[
 
-  'a dry climate kind to asthmatics',
+'a dry climate kind to asthmatics',
 
-  'hot summer pavements are anything but kind to the feet',
+'hot summer pavements are anything but kind to the feet',
 
-  'our neighbor was very kind about the window our son broke',
+'our neighbor was very kind about the window our son broke',
 
-  'what kinds of desserts are there?',
+'what kinds of desserts are there?',
 
-  'kind to sick patients',
+'kind to sick patients',
 
-  'a kind master',
+'a kind master',
 
-  'kind words showing understanding and sympathy',
+'kind words showing understanding and sympathy',
 
-  'thanked her for her kind letter'
+'thanked her for her kind letter'
 
-  ],
+],
 
-  [
+[
 
-  'agreeable, conducive to comfort',
+'agreeable, conducive to comfort',
 
-  'tolerant and forgiving under provocation',
+'tolerant and forgiving under provocation',
 
-  'a category of things distinguished by ' +
+'a category of things distinguished by ' +
 
-  'some common characteristic or quality',
+'some common characteristic or quality',
 
-  'having or showing a tender and considerate and helpful ' +
+'having or showing a tender and considerate and helpful ' +
 
-  'nature; used especially of persons and their behavior'
+'nature; used especially of persons and their behavior'
 
-  ],
+],
 
-  [ 'genial', 'tolerant', 'form', 'sort', 'variety' ]
+[ 'genial', 'tolerant', 'form', 'sort', 'variety' ]
 
 ]
 
