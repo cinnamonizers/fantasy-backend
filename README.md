@@ -79,26 +79,47 @@ movie_id: '5cd95395de30eff6ebccde5c'
 
 ### Words API
 Sample - examples, definition and synonyms for words selected (kind)
+
 [
+
 [
+
 'a dry climate kind to asthmatics',
+
 'hot summer pavements are anything but kind to the feet',
+
 'our neighbor was very kind about the window our son broke',
+
 'what kinds of desserts are there?',
+
 'kind to sick patients',
+
 'a kind master',
+
 'kind words showing understanding and sympathy',
+
 'thanked her for her kind letter'
+
 ],
+
 [
+
 'agreeable, conducive to comfort',
+
 'tolerant and forgiving under provocation',
+
 'a category of things distinguished by ' +
+
 'some common characteristic or quality',
+
 'having or showing a tender and considerate and helpful ' +
+
 'nature; used especially of persons and their behavior'
+
 ],
+
 [ 'genial', 'tolerant', 'form', 'sort', 'variety' ]
+
 ]
 
 ## Change Log
