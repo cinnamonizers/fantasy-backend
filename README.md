@@ -82,43 +82,43 @@ Sample - examples, definition and synonyms for words selected (kind)
 
 [
 
-[
+  [
 
-'a dry climate kind to asthmatics',
+  'a dry climate kind to asthmatics',
 
-'hot summer pavements are anything but kind to the feet',
+  'hot summer pavements are anything but kind to the feet',
 
-'our neighbor was very kind about the window our son broke',
+  'our neighbor was very kind about the window our son broke',
 
-'what kinds of desserts are there?',
+  'what kinds of desserts are there?',
 
-'kind to sick patients',
+  'kind to sick patients',
 
-'a kind master',
+  'a kind master',
 
-'kind words showing understanding and sympathy',
+  'kind words showing understanding and sympathy',
 
-'thanked her for her kind letter'
+  'thanked her for her kind letter'
 
-],
+  ],
 
-[
+  [
 
-'agreeable, conducive to comfort',
+  'agreeable, conducive to comfort',
 
-'tolerant and forgiving under provocation',
+  'tolerant and forgiving under provocation',
 
-'a category of things distinguished by ' +
+  'a category of things distinguished by ' +
 
-'some common characteristic or quality',
+  'some common characteristic or quality',
 
-'having or showing a tender and considerate and helpful ' +
+  'having or showing a tender and considerate and helpful ' +
 
-'nature; used especially of persons and their behavior'
+  'nature; used especially of persons and their behavior'
 
-],
+  ],
 
-[ 'genial', 'tolerant', 'form', 'sort', 'variety' ]
+  [ 'genial', 'tolerant', 'form', 'sort', 'variety' ]
 
 ]
 
