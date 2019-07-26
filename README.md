@@ -2,7 +2,7 @@
 
 For project information please refer back to https://github.com/cinnamonizers/fantasy-wordbook
 
-# Functions List
+## Functions List
 
 - getMovies - Helper function to get the movies for the initial pageload drop-down box in the frontend
 
@@ -39,9 +39,9 @@ Otherwise, retrieve from database
 
 - getVerses - Helper function that gets executed when the server starts to get verses information from the API and store into the DB
 
-# Change Log
+## Change Log
 
-# Day 1
+### Day 1
 
 1. Project delegation into front end and backend. 
 2. Set up Trello Board and GitHub repository.
@@ -49,20 +49,20 @@ Otherwise, retrieve from database
 4. Working movies and quotes routes returning data back from API calls.
 5. Decided and created backend table structures for Movies and Quotes data.
 
-# Day 2
+### Day 2
 
 1. Persisted Movie and Quotes data to database.
 2. Restructured table for movies to work with quotes data. 
 3. Integrated words API without full DB persistence.
 
-# Day 3
+### Day 3
 
 1. Full data persistence achieved. Working Movies, Quotes and Words routes.
 2. Refactored existing code base.
 3. Deployed master branch on Heroku.
 4. Implemented API call and data storage for the stretch goal.
 
-# Day 4
+### Day 4
 
 1. Integrated the verses data with the front end.
 2. Merged dev with master and deployed master on heroku.
